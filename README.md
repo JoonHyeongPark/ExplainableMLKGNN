@@ -1,5 +1,6 @@
-# ExplainableMLKGNN
-Multi-level Knowledge Graph Neural Network Explains Assays for Breast Cancer Recurrence
+# Multi-level Knowledge Graph Neural Network Explains Assays for Breast Cancer Recurrence
+[ExplainableMLKGNN.pdf](https://github.com/JoonHyeongPark/ExplainableMLKGNN/files/10554431/ExplainableMLKGNN.pdf)
+[ExplainableMLKGNN-SupplementaryMaterials.pdf](https://github.com/JoonHyeongPark/ExplainableMLKGNN/files/10554430/ExplainableMLKGNN-SupplementaryMaterials.pdf)
 
 # Abstract
 Motivation: Multi-gene assays have been widely used to predict the risk of recurrence for hormone receptor(HR)-positive breast cancer with genes that are closely associated with survival or recurrence outcomes. However, due to the design goal of outcome-driven approaches, the assays lack the explanatory power on why cancer recurrence risk is high or low given the transcriptional quantities of the assays’ genes.
