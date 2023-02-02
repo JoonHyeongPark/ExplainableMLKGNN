@@ -29,6 +29,11 @@ This code creates a multi-level knowledge graph in the form of a torch object fr
 
 Due to the largee file size, input files are provided in https://drive.google.com/drive/folders/17Xg6UNISMV9rIfbEHI3VMhqdkxJRZxNW?usp=sharing. Input files should be downloaded in the same directory as model.py. This code runs 10-fold CV and reports statistics on the best epoch for each split. The best model for each split is saved in the saved_models folder. Users can change various hyperparameters, and the list of adjustable hyperparameters is as follows.
 
+Code file : model.py
+```ShellSession
+$ python model.py --TARGET_GENE_SET [AssayGeneSetName]
+```
+
 --TARGET_GENE_SET : assay gene set name (default : UpdatedOncotypeDXCancer)
 
 --EPOCHS : training epochs (default : 200)
@@ -42,8 +47,3 @@ Due to the largee file size, input files are provided in https://drive.google.co
 --LEARNING_RATE : learning rate (default : 1e-4)
 
 --PATIENCE : patience epochs for early stopping (default : 10)
-
-Code file : model.py
-```ShellSession
-$ python model.py --TARGET_GENE_SET [AssayGeneSetName]
-```
