@@ -11,11 +11,11 @@ SubpathwayCascade-1.CascadeBackbones.py
 ```ShellSession
 $ python SubpathwayCascade-1.CascadeBackbones.py --TARGET_GENE_SET [AssayGeneSetName]
 ```
-AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, Prosigna]
+AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, UpdatedProsigna]
 
 ### Step2 : Assay-specific subpathway graphs
 SubpathwayCascade-2.KnowledgeGraphGeneration.py
 ```ShellSession
 $ python SubpathwayCascade-2.KnowledgeGraphGeneration.py --TARGET_GENE_SET [AssayGeneSetName]
 ```
-AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, Prosigna]
+AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, UpdatedProsigna]
