@@ -10,7 +10,7 @@ Results: To improve the explanatory power of the assays, we developed a multi-le
 We propose an assay-agnostic knowledge graph generation method called the subpathway cascade, which identifies potential subpathways that regulate transcriptomic states of assay genes and are involved in the process of breast cancer recurrence. Generating all regulatory subpathways connecting cancer driver genes to assay genes including cascading cases is computationally expensive due to the numerous combinations of regulatory mechanisms. To address this challenge, we propose a two-step generating process. To implement the subpathwy cascade, AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, UpdatedProsigna], corresponding to EndoPredict, OncotypeDX and Prosigna, respectively. This version currently supports three sets of assay genes. The size of the file required to execute the method is too large, so only the code and results for the result are uploaded. Results for each assay gene set exist in the SubpathwayCascade folder.
 
 ### Step1 : Generating cascading backbones
-SubpathwayCascade-1.CascadeBackbones.py
+Code file : SubpathwayCascade-1.CascadeBackbones.py
 ```ShellSession
 $ python SubpathwayCascade-1.CascadeBackbones.py --TARGET_GENE_SET [AssayGeneSetName]
 ```
@@ -18,7 +18,7 @@ $ python SubpathwayCascade-1.CascadeBackbones.py --TARGET_GENE_SET [AssayGeneSet
 To generate potential regulatory subpathways of assay genes, we generate cascading backbones which contain essential information about the subpathways in the form of two sequences. The cascading backbones identified from the algorithm are stored in CascadeBackbones.txt in the corresponding folder.
 
 ### Step2 : Assay-specific subpathway graphs
-SubpathwayCascade-2.KnowledgeGraphGeneration.py
+Code file : SubpathwayCascade-2.KnowledgeGraphGeneration.py
 ```ShellSession
 $ python SubpathwayCascade-2.KnowledgeGraphGeneration.py --TARGET_GENE_SET [AssayGeneSetName]
 ```
