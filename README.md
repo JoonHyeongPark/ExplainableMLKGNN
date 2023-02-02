@@ -24,3 +24,7 @@ $ python SubpathwayCascade-2.KnowledgeGraphGeneration.py --TARGET_GENE_SET [Assa
 ```
 
 This code creates a multi-level knowledge graph in the form of a torch object from the cascading backbones created in the previous step. The multi-level knowledge graph neural network identifies regulatory subpathways important for breast cancer recurrence as an attention mechanism using the generated graph structure. In order to construct a knowledge graph that can be used for a specific dataset, a process of mapping to the genes included in the dataset is required. The code file for the SCAN-B dataset is attached together in this repository.
+
+## Multi-level Knowledge Graph Neural Network
+
+Due to the file size, input files are provided in https://drive.google.com/drive/folders/17Xg6UNISMV9rIfbEHI3VMhqdkxJRZxNW?usp=sharing.
