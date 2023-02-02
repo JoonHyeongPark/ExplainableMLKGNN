@@ -27,4 +27,16 @@ This code creates a multi-level knowledge graph in the form of a torch object fr
 
 ## Multi-level Knowledge Graph Neural Network
 
-Due to the file size, input files are provided in https://drive.google.com/drive/folders/17Xg6UNISMV9rIfbEHI3VMhqdkxJRZxNW?usp=sharing. Input files should be downloaded in the same directory as model.py. This code runs 10-fold CV and reports statistics on the best epoch for each split.
+Due to the file size, input files are provided in https://drive.google.com/drive/folders/17Xg6UNISMV9rIfbEHI3VMhqdkxJRZxNW?usp=sharing. Input files should be downloaded in the same directory as model.py. This code runs 10-fold CV and reports statistics on the best epoch for each split. MSigDB_Hallmark_2020.txt The best model for each split is saved in the saved_models folder. Users can change various hyperparameters, and the list of adjustable hyperparameters is as follows.
+
+--EPOCHS : training epochs (default : 200)
+
+--BATCH_SIZE : batch size (default : 512)
+
+--DEVICE : device (default : cuda:0)
+
+--HIDDEN_DIM : hidden dimension for the neural network (default : 16)
+
+--LEARNING_RATE : learning rate (default : 1e-4)
+
+--PATIENCE : patience epochs for early stopping (default : 10)
