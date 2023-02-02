@@ -13,6 +13,9 @@ from itertools import chain
 
 import pickle
 
+import torch
+from torch_geometric.utils.convert import from_networkx
+    
 def read_target_gene_set(TARGET_GENE_SET) :
     
     assay_genes_folder = os.path.join(os.getcwd(), "data", "AssayGenes")
@@ -74,6 +77,8 @@ def argument_parsing() :
     parser.add_argument('--BLOCK_CUTOFF', type=int, help='cascade block cutoff', default=2)
     parser.add_argument('--BRIDGE_CUTOFF', type=int, help='bridge cutoff', default=1)
     parser.add_argument('--EVIDENCE_CUTOFF', type=int, help='TFTG evidence cutoff', default=5)
+    
+    parser.add_argument('--LENGTH_CUTOFF', type=int, help='block length cutoff', default=2)
     
     args = parser.parse_args()
     
@@ -301,6 +306,72 @@ def condense_isomorphic_blocks(supernodes_in_pathway, subpathway_block_names) :
     return pd.DataFrame(data=condensed_subpathway_blocks, columns=["BlockName", "Pathway", "Sources", "Targets", "SubpathwayBlocks"])
 
 
+def filter_subpathways(subpathway_file, target_genes, mapped_graphs) :
+    
+    subpathway_block_df = pd.read_csv(subpathway_file, sep="\t")
+
+    subpathway_blocks = defaultdict(list)
+    subpathway_pathways = defaultdict(list)
+
+    for block_list, pathway_list in tqdm(zip(subpathway_block_df["Blocks"], subpathway_block_df["Pathways"])) :
+
+        block_list = block_list.split("*")
+        pathway_list = pathway_list.split("-")
+
+        source = block_list[0]
+        target = block_list[-1]
+
+        subpathway_blocks[(source, target)].append(block_list)
+        subpathway_pathways[(source, target)].append(pathway_list)
+
+    TFTG_G = nx.DiGraph()
+    
+    subpathway_landscape_G = nx.DiGraph()
+    pathway_landscape_G = nx.DiGraph()
+    assay_regulator_subpathway_G = nx.DiGraph()
+    
+    connected_assay_genes = set()
+
+    for (source, target) in tqdm(subpathway_blocks.keys()) :
+        for (p, pathways) in zip(subpathway_blocks[(source, target)], subpathway_pathways[(source, target)]) :
+                        
+            check_valid = True
+            for i, (gene1, gene2) in enumerate(zip(p[:-1], p[1:])) :
+                if pathways[i] != "TFTG" :
+                    if not gene1 in mapped_graphs[pathways[i]].nodes : 
+                        check_valid = False
+                        break
+                    if not gene2 in mapped_graphs[pathways[i]].nodes : 
+                        check_valid = False
+                        break
+                    if not nx.has_path(mapped_graphs[pathways[i]], source=gene1, target=gene2) :
+                        check_valid = False
+                        break
+                    if nx.shortest_path_length(mapped_graphs[pathways[i]], source=gene1, target=gene2) <= LENGTH_RESTRICTION :
+                        check_valid = False
+                        break
+            if not check_valid : continue
+            
+            subpathway_block_sequence = []
+            pathway_sequence = []
+            
+            for i, (gene1, gene2) in enumerate(zip(p[:-1], p[1:])) :
+                if pathways[i] == "TFTG" :
+                    TFTG_G.add_edge(gene1, gene2, Level="Gene-Gene", Type="TFTG", Subtype="None", Pathway="None")
+                else :
+                    subpathway_block_sequence.append("_".join([pathways[i], gene1, gene2]))
+                    pathway_sequence.append(pathways[i])
+                    
+            if p[-1] in target_genes :
+                assay_regulator_subpathway_G.add_edge(subpathway_block_sequence[-1], "ASSAY_" + p[-1])
+                connected_assay_genes.add("ASSAY_" + p[-1])
+                
+            nx.add_path(subpathway_landscape_G, subpathway_block_sequence)
+            nx.add_path(pathway_landscape_G, pathway_sequence)
+            
+    return subpathway_blocks, subpathway_pathways, TFTG_G, subpathway_landscape_G, pathway_landscape_G, assay_regulator_subpathway_G, connected_assay_genes
+
+
 def generate_knowledge_graph_step1(graph_path, TFTG_G, subgraph=True) :
     
     if subgraph :
@@ -457,3 +528,140 @@ if __name__ == "__main__" :
         
     print("Knowledge Graph (after condensation) :")
     print_knowledge_graph_statistics(CONDENSED_KG_DICT)
+
+    
+    DATASET = "SCAN-B"
+    FILTER_LOW_EXPRESSED_GENES = True
+    LENGTH_RESTRICTION = args.LENGTH_CUTOFF
+    FOLDER_PATH = os.path.join(os.getcwd(), "data", "MendeleySCAN-B")
+
+    EXP_FOLDER_PATH = os.path.join(FOLDER_PATH, "StringTie FPKM Gene Data LibProtocol adjusted")
+    EXP_FILE_NAME = "SCANB.9206.genematrix_noNeg.Symbol.txt"
+
+    print()
+    print()
+    print(f"Mapping for {DATASET} started")
+    print(f"Low expressed genes are filtered out and length restriction cutoff is {LENGTH_RESTRICTION}")
+    
+    exp = pd.read_csv(os.path.join(EXP_FOLDER_PATH, EXP_FILE_NAME), sep="\t")
+    exp.set_index("Unnamed: 0", inplace=True)
+
+    INPUT_GENES = sorted(list(set(exp.index)))
+
+    if FILTER_LOW_EXPRESSED_GENES :
+        exp = exp.groupby("Unnamed: 0").sum()
+        exp = exp.loc[(exp == 0).sum(axis=1) / exp.shape[1] < 0.2]
+        INPUT_GENES = sorted(list(set(exp.index)))
+    
+    KEGG_graphs, _, supernodes_in_pathway = read_pathway_reference()
+    MAPPED_PATH = os.path.join(SUBPATHWAY_FOLDER_PATH, f"MAPPING={DATASET}.LENGTH={LENGTH_RESTRICTION}")
+        
+    if not os.path.exists(MAPPED_PATH) : os.makedirs(MAPPED_PATH, exist_ok=True)
+        
+    MAPPED_KEGG_GRAPHS = dict()
+    for pathway_id, pathway_graph in KEGG_graphs.items() :    
+        MAPPED_KEGG_GRAPHS[pathway_id] = KEGG_graphs[pathway_id].subgraph(INPUT_GENES)
+
+    SUBPATHWAY_BLOCKS, SUBPATHWAY_PATHWAYS, TFTG_CASADE_G, SUBPATHWAY_LANDSCAPE_G, PATHWAY_LANDSCAPE_G, ASSAY_REGULATOR_SUBPATHWAY_G, CONNECTED_ASSAY_GENES = filter_subpathways(os.path.join(SUBPATHWAY_FOLDER_PATH, SUBPATHWAY_BLOCK_FILE_NAME), TARGET_GENES, MAPPED_KEGG_GRAPHS)
+
+    BLOCK_NAMES = sorted(list(SUBPATHWAY_LANDSCAPE_G.nodes))
+
+    CONDENSED_BLOCK_COMPONENTS_DF = condense_isomorphic_blocks(supernodes_in_pathway, BLOCK_NAMES)
+    BLOCK_COMPONENTS_DF = extract_block_graphs(BLOCK_NAMES, MAPPED_KEGG_GRAPHS, graph_path=MAPPED_PATH)
+    REGULATORY_GENES = sorted(list(set(chain(*BLOCK_COMPONENTS_DF["Genes"].str.split("*"))) | TFTG_CASADE_G.nodes))
+
+    KG_GENE, KG_GENE_TO_SUBPATHWAY = generate_knowledge_graph_step1(MAPPED_PATH, TFTG_CASADE_G)
+    KG_SUBPATHWAY, KG_SUBPATHWAY_TO_ASSAY = generate_knowledge_graph_step2(SUBPATHWAY_LANDSCAPE_G, ASSAY_REGULATOR_SUBPATHWAY_G)
+
+    KG_DICT = dict()
+    KG_DICT["Level-11"] = KG_GENE
+    KG_DICT["Level-12"] = KG_GENE_TO_SUBPATHWAY
+    KG_DICT["Level-22"] = KG_SUBPATHWAY
+    KG_DICT["Level-23"] = KG_SUBPATHWAY_TO_ASSAY
+
+    KG_DICT["Level-1.Nodes"] = set(KG_DICT["Level-11"].nodes)
+    KG_DICT["Level-2.Nodes"] = set(KG_DICT["Level-22"].nodes)
+    KG_DICT["Level-3.Nodes"] = CONNECTED_ASSAY_GENES
+
+    CONDENSED_KG_DICT = condense_knowledge_graph(KG_DICT, 
+                                                 CONDENSED_BLOCK_COMPONENTS_DF["BlockName"], 
+                                                 CONDENSED_BLOCK_COMPONENTS_DF["SubpathwayBlocks"].str.split(";"))
+
+    with open(os.path.join(MAPPED_PATH, 'HierarchicalKnowledgeGraph.pkl'), 'wb') as fw : pickle.dump(KG_DICT, fw)
+    with open(os.path.join(MAPPED_PATH, 'HierarchicalKnowledgeGraph.Condensed.pkl'), 'wb') as fw : pickle.dump(CONDENSED_KG_DICT, fw)
+
+    print("Knowledge Graph (before condensation) :")
+    print_knowledge_graph_statistics(KG_DICT)
+
+    print()
+    print()
+
+    print("Knowledge Graph (after condensation) :")
+    print_knowledge_graph_statistics(CONDENSED_KG_DICT)
+
+
+    # edge information
+    level_11_G_without_attr = nx.DiGraph()
+    level_22_G_without_attr = nx.DiGraph()
+    level_22_G_without_attr.add_nodes_from(list(CONDENSED_KG_DICT["Level-22"].nodes()))
+
+    level_11_G_without_attr.add_edges_from(list(CONDENSED_KG_DICT["Level-11"].edges()))
+    level_22_G_without_attr.add_edges_from(list(CONDENSED_KG_DICT["Level-22"].edges()))
+
+    level_11_G_int = nx.convert_node_labels_to_integers(level_11_G_without_attr, label_attribute="Name")
+    level_22_G_int = nx.convert_node_labels_to_integers(level_22_G_without_attr, label_attribute="Name")
+
+    level_11_G_torch = from_networkx(level_11_G_int)
+    level_22_G_torch = from_networkx(level_22_G_int)
+
+    level_1_nodes = level_11_G_torch.Name
+    level_2_nodes = level_22_G_torch.Name
+    level_3_nodes = list(CONDENSED_KG_DICT["Level-3.Nodes"])
+
+    level_1_node_number = len(level_1_nodes)
+    level_2_node_number = len(level_2_nodes)
+    level_3_node_number = len(level_3_nodes)
+
+    level_1_node_labels = dict(zip([i for i in range(level_1_node_number)], level_1_nodes))
+    level_2_node_labels = dict(zip([i for i in range(level_2_node_number)], level_2_nodes))
+    level_3_node_labels = dict(zip([i for i in range(level_3_node_number)], level_3_nodes))
+
+    level_1_node_dict = dict(zip(level_1_nodes, [i for i in range(level_1_node_number)]))
+    level_2_node_dict = dict(zip(level_2_nodes, [i for i in range(level_2_node_number)]))
+    level_3_node_dict = dict(zip(level_3_nodes, [i for i in range(level_3_node_number)]))
+
+    level_12_G = CONDENSED_KG_DICT["Level-12"]
+    level_21_indicator = torch.zeros(level_2_node_number, level_1_node_number)
+    for source, target in level_12_G.edges() :
+        source = level_1_node_dict[source]
+        target = level_2_node_dict[target]
+        level_21_indicator[target][source] = 1
+
+    level_23_G = CONDENSED_KG_DICT["Level-23"]
+    level_32_indicator = torch.zeros(level_3_node_number, level_2_node_number)
+    for source, target in level_23_G.edges() :
+        source = level_2_node_dict[source]
+        target = level_3_node_dict[target]
+        level_32_indicator[target][source] = 1
+
+    level_13_indicator = list()
+    for assay_gene in level_3_nodes :
+        level_13_indicator.append(level_1_nodes.index(assay_gene.split("_")[1]))
+    
+    torch_KG_dict = dict()
+    
+    torch_KG_dict["level_1_nodes"] = level_1_nodes
+    torch_KG_dict["level_2_nodes"] = level_2_nodes
+    torch_KG_dict["level_3_nodes"] = level_3_nodes
+    
+    torch_KG_dict["level_1_node_number"] = level_1_node_number
+    torch_KG_dict["level_2_node_number"] = level_2_node_number
+    torch_KG_dict["level_3_node_number"] = level_3_node_number
+    
+    torch_KG_dict["level_11_G_torch"] = level_11_G_torch
+    torch_KG_dict["level_22_G_torch"] = level_22_G_torch
+    torch_KG_dict["level_21_indicator"] = level_21_indicator
+    torch_KG_dict["level_32_indicator"] = level_32_indicator
+    torch_KG_dict["level_13_indicator"] = level_13_indicator
+    
+    torch.save(torch_KG_dict, os.path.join(MAPPED_PATH, "HierarchicalKnowledgeGraph.Condensed.TorchObject.pt"))
