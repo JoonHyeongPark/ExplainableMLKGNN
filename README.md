@@ -11,7 +11,8 @@ SubpathwayCascade-1.CascadeBackbones.py
 ```ShellSession
 $ python SubpathwayCascade-1.CascadeBackbones.py --TARGET_GENE_SET [AssayGeneSetName]
 ```
-AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, UpdatedProsigna]
+
+To generate potential regulatory subpathways of assay genes, we generate cascading backbones which contain essential information about the subpathways in the form of two sequences. The cascading backbones identified from the algorithm are stored in CascadeBackbones.txt in the corresponding folder. This version currently supports three sets of assay genes, EndoPredict, OncotypeDX and Prosigna. To implement the code, AssayGeneSetName should be in [UpdatedEndoPredictCancer, UpdatedOncotypeDXCancer, UpdatedProsigna].
 
 ### Step2 : Assay-specific subpathway graphs
 SubpathwayCascade-2.KnowledgeGraphGeneration.py
