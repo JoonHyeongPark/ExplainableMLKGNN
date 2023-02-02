@@ -42,3 +42,8 @@ Due to the largee file size, input files are provided in https://drive.google.co
 --LEARNING_RATE : learning rate (default : 1e-4)
 
 --PATIENCE : patience epochs for early stopping (default : 10)
+
+Code file : model.py
+```ShellSession
+$ python model.py --TARGET_GENE_SET [AssayGeneSetName]
+```
