@@ -27,4 +27,4 @@ This code creates a multi-level knowledge graph in the form of a torch object fr
 
 ## Multi-level Knowledge Graph Neural Network
 
-Due to the file size, input files are provided in https://drive.google.com/drive/folders/17Xg6UNISMV9rIfbEHI3VMhqdkxJRZxNW?usp=sharing.
+Due to the file size, input files are provided in https://drive.google.com/drive/folders/17Xg6UNISMV9rIfbEHI3VMhqdkxJRZxNW?usp=sharing. Input files should be downloaded in the same directory as model.py. This code runs 10-fold CV and reports statistics on the best epoch for each split.
